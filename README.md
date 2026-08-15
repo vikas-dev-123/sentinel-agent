@@ -119,17 +119,7 @@ Copy `.env.example` to `.env`. Key variables: `ANTHROPIC_API_KEY`, `SENTINEL_CLA
 (default `claude-opus-5`), `ZAP_API_URL`, `ZAP_API_KEY`, `NMAP_BINARY`, `SENTINEL_MOCK`,
 `SENTINEL_ALLOW_ANY`, `SENTINEL_APPROVED_HOSTS`, `SENTINEL_REPORTS_DIR`.
 
----
-
-## ⚠️ Legal & ethics
-
-**Only scan systems you own or have explicit written authorization to test.** SentinelAgent
-enforces this: by default it refuses any target that is not localhost/private or an
-explicitly approved host. Approved practice targets are **DVWA** and **OWASP Juice Shop**,
-run locally. To test a host you own, add it to `SENTINEL_APPROVED_HOSTS` or set
-`SENTINEL_ALLOW_ANY=1`. Do not point this at third-party systems.
-
----
+ ---
 
 ## Project layout
 
