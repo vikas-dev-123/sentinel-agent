@@ -49,11 +49,19 @@ class Settings:
     """Runtime settings for a scan session."""
 
     # --- LLM ---
-    # Which reasoning backend to use: "auto" | "claude" | "hf" | "ollama" | "heuristic".
-    # "auto" prefers Claude, then Hugging Face, then the offline heuristic.
-    # ("ollama" is chosen only when set explicitly, since it has no API key to detect.)
+    # Which backend to use: "auto" | "claude" | "hf" | "ollama" | "groq" | "heuristic".
+    # "auto" prefers Claude, then Hugging Face, then Groq, then the offline heuristic.
     llm_provider: str = field(
         default_factory=lambda: os.getenv("SENTINEL_LLM_PROVIDER", "auto").strip().lower()
+    )
+    # Cost/model routing (spec Section 8): route the cheap "parse raw output" step
+    # and the "reason/confirm + report" step to different providers. Empty = use
+    # llm_provider for both. E.g. SENTINEL_PARSE_PROVIDER=groq, SENTINEL_REASON_PROVIDER=claude.
+    parse_provider: str = field(
+        default_factory=lambda: os.getenv("SENTINEL_PARSE_PROVIDER", "").strip().lower()
+    )
+    reason_provider: str = field(
+        default_factory=lambda: os.getenv("SENTINEL_REASON_PROVIDER", "").strip().lower()
     )
 
     anthropic_api_key: str | None = field(
@@ -93,6 +101,15 @@ class Settings:
         )
     )
 
+    # --- Groq (fast, cheap open models, OpenAI-compatible) ---
+    groq_api_key: str | None = field(default_factory=lambda: os.getenv("GROQ_API_KEY"))
+    groq_model: str = field(
+        default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    )
+    groq_base_url: str = field(
+        default_factory=lambda: os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+    )
+
     # --- OWASP ZAP ---
     zap_api_url: str = field(
         default_factory=lambda: os.getenv("ZAP_API_URL", "http://localhost:8080")
@@ -120,8 +137,8 @@ class Settings:
     )
 
     def has_llm(self) -> bool:
-        """True if any real LLM backend (Claude or Hugging Face) is configured."""
-        return bool(self.anthropic_api_key) or bool(self.hf_api_key)
+        """True if any real LLM backend (Claude, Hugging Face, or Groq) is configured."""
+        return bool(self.anthropic_api_key or self.hf_api_key or self.groq_api_key)
 
 
 class ScopeError(PermissionError):

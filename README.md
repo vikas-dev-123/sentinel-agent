@@ -96,16 +96,24 @@ Reports (Markdown + PDF) land in `reports/`. See a [**sample report**](docs/samp
 
 ### Pluggable reasoning backends
 
-Set `SENTINEL_LLM_PROVIDER` = `auto` (default) · `claude` · `hf` · `ollama` · `heuristic`.
+Set `SENTINEL_LLM_PROVIDER` = `auto` (default) · `claude` · `hf` · `ollama` · `groq` · `heuristic`.
 
 | Backend | Cost | Notes |
 |---|---|---|
 | **Claude** (`claude-opus-5`) | paid | best reasoning / report prose |
 | **Hugging Face** | free tier | any chat model via the OpenAI-compatible router |
+| **Groq** | free tier | fast open models (Llama, etc.) |
 | **Ollama** | free / local | run models on your own machine |
 | **heuristic** | free | deterministic, no LLM — always works offline |
 
 If an LLM call fails, it falls back to the heuristic so a run never breaks.
+
+**💡 Cost/model routing** — route the cheap *parse raw output → JSON* step and the reasoning-heavy *confirm + report* step to different backends:
+
+```bash
+export SENTINEL_PARSE_PROVIDER=groq      # fast + cheap for structured extraction
+export SENTINEL_REASON_PROVIDER=claude   # strong reasoning for confirmation + prose
+```
 
 ## 🧪 Real-world example: catching false positives
 
@@ -162,10 +170,11 @@ python -m pytest tests/ -q      # 5 passed
 
 ## 🗺️ Roadmap
 
+- [x] Cost-routed multi-model pipeline (cheap parse + strong reasoning)
+- [x] Surface live-vs-fallback status explicitly in output
 - [ ] Authenticated scanning (session/cookie injection for logged-in areas)
 - [ ] More OWASP WSTG categories (CSRF, SSRF, access control)
-- [ ] Cost-routed multi-model pipeline (cheap parse + strong reasoning)
-- [ ] Surface live-vs-fallback status explicitly in output
+- [ ] Burp Suite / Metasploit integration (post-MVP)
 
 ## ⚖️ Legal & Ethics
 

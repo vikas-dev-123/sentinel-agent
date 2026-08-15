@@ -12,14 +12,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..config import Settings
-from ..llm import LLMClient
+from ..llm import RoutedLLM
 from ..tools import NmapClient, ZapClient
 
 
 @dataclass
 class AgentContext:
     settings: Settings
-    llm: LLMClient
+    llm: RoutedLLM  # routes parse vs reason to (possibly) different backends
     zap: ZapClient
     nmap: NmapClient
 
@@ -29,11 +29,13 @@ def run_zap_category(ctx: AgentContext, state: dict, category: str) -> dict:
     target = state["target"]
     raw = ctx.zap.alerts_for(target, category)
     findings = ctx.llm.interpret(category, target, raw)
+    # Be explicit about whether this is live ZAP data or a sample-data fallback.
+    src = "sample data" if ctx.zap.used_mock else "live ZAP"
     # Return only deltas; state reducers merge raw_results and append log lines.
     return {
         "raw_results": {category: findings},
         "log": [
-            f"[{category}] ZAP produced {len(raw)} raw alert(s); "
+            f"[{category}] {src}: {len(raw)} raw alert(s), "
             f"{len(findings)} interpreted finding(s)."
         ],
     }

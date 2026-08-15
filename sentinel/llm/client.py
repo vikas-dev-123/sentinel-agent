@@ -34,16 +34,16 @@ def _norm(value: str | None, default: str = "") -> str:
 
 
 class LLMClient:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, provider: str | None = None):
         self.settings = settings
         self._client = None
         self.backend = "heuristic"
         self.model = "n/a"
-        # For OpenAI-compatible backends (Hugging Face, Ollama).
+        # For OpenAI-compatible backends (Hugging Face, Ollama, Groq).
         self._chat_base = ""
         self._chat_key = ""
 
-        provider = settings.llm_provider or "auto"
+        provider = (provider or settings.llm_provider or "auto").strip().lower()
 
         def _try_claude() -> bool:
             if not settings.anthropic_api_key:
@@ -76,19 +76,30 @@ class LLMClient:
             self._chat_key = "ollama"  # accepted-but-ignored dummy key
             return True
 
+        def _try_groq() -> bool:
+            if not settings.groq_api_key:
+                return False
+            self.backend = "groq"
+            self.model = settings.groq_model
+            self._chat_base = settings.groq_base_url
+            self._chat_key = settings.groq_api_key
+            return True
+
         if provider == "claude":
             _try_claude()
         elif provider == "hf":
             _try_hf()
         elif provider == "ollama":
             _try_ollama()
+        elif provider == "groq":
+            _try_groq()
         elif provider == "heuristic":
             pass
-        else:  # "auto": prefer Claude, then Hugging Face, then heuristic
-            _try_claude() or _try_hf()
+        else:  # "auto": Claude, then Hugging Face, then Groq, then heuristic
+            _try_claude() or _try_hf() or _try_groq()
 
     # OpenAI-compatible backends share the same chat/JSON path.
-    _OAI_BACKENDS = {"hf", "ollama"}
+    _OAI_BACKENDS = {"hf", "ollama", "groq"}
 
     # ------------------------------------------------------------------ Claude
     def _claude_json(
@@ -441,3 +452,42 @@ class LLMClient:
         from ..reporting.markdown import render_markdown
 
         return render_markdown(target, confirmed, meta)
+
+
+class RoutedLLM:
+    """Cost/model routing (spec Section 8).
+
+    Routes the cheap "parse raw scanner output into JSON" step (interpret) to one
+    provider and the reasoning-heavy "confirm + write report" steps to another —
+    e.g. a fast/cheap Groq or Ollama model for parsing, Claude for confirmation
+    and prose. When no split is configured both use the same provider, so this
+    behaves exactly like a single LLMClient.
+    """
+
+    def __init__(self, settings: Settings):
+        base = settings.llm_provider or "auto"
+        parse = settings.parse_provider or base
+        reason = settings.reason_provider or base
+        self.parse_client = LLMClient(settings, provider=parse)
+        self.reason_client = LLMClient(settings, provider=reason)
+
+        if self.parse_client.backend == self.reason_client.backend:
+            self.backend = self.reason_client.backend
+        else:
+            self.backend = (
+                f"{self.parse_client.backend}(parse)+"
+                f"{self.reason_client.backend}(reason)"
+            )
+        # Report metadata reports the reasoning model (does confirm + report).
+        self.model = self.reason_client.model
+
+    # Parsing step -> parse backend.
+    def interpret(self, category: str, target: str, raw_findings: list[dict]) -> list[dict]:
+        return self.parse_client.interpret(category, target, raw_findings)
+
+    # Reasoning steps -> reason backend.
+    def confirm(self, target: str, raw_results: dict[str, list]) -> list[dict]:
+        return self.reason_client.confirm(target, raw_results)
+
+    def write_report(self, target: str, confirmed: list[dict], meta: dict[str, Any]) -> str:
+        return self.reason_client.write_report(target, confirmed, meta)

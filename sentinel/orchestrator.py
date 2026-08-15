@@ -25,7 +25,7 @@ from .agents.recon import recon_agent
 from .agents.report import report_agent
 from .agents.scanners import auth_agent, misconfig_agent, sqli_agent, xss_agent
 from .config import Settings, assert_in_scope
-from .llm import LLMClient
+from .llm import RoutedLLM
 from .state import ScanState
 from .tools import NmapClient, ZapClient
 
@@ -41,7 +41,7 @@ _CATEGORY_NODES = {
 def build_context(settings: Settings) -> AgentContext:
     return AgentContext(
         settings=settings,
-        llm=LLMClient(settings),
+        llm=RoutedLLM(settings),
         zap=ZapClient(settings),
         nmap=NmapClient(settings),
     )

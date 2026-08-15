@@ -65,7 +65,9 @@ def render_markdown(target: str, confirmed: list[dict], meta: dict[str, Any]) ->
         f"- **Analysis engine:** {meta.get('llm_backend', 'heuristic')} "
         f"({meta.get('model', 'n/a')})"
     )
-    lines.append(f"- **Mode:** {'sample data (mock)' if meta.get('mock') else 'live tools'}")
+    lines.append(
+        f"- **Data source:** {meta.get('data_source', 'sample data (mock)' if meta.get('mock') else 'live tools')}"
+    )
     lines.append(
         "- **Categories:** Recon, SQL Injection, Cross-Site Scripting, Broken "
         "Authentication, Security Misconfiguration"

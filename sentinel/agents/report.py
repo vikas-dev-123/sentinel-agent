@@ -17,10 +17,23 @@ def report_agent(ctx: AgentContext, state: dict) -> dict:
     target = state["target"]
     confirmed = state.get("confirmed_findings", [])
     meta = dict(state.get("meta", {}))
+
+    # Be honest about where the data came from: if a live scan was requested but
+    # ZAP/Nmap were unreachable, the tools fall back to bundled sample data.
+    live_requested = not state.get("mock")
+    fell_back = live_requested and (ctx.zap.used_mock or ctx.nmap.used_mock)
+    if state.get("mock"):
+        data_source = "sample data (mock mode)"
+    elif fell_back:
+        data_source = "live requested — fell back to bundled sample data"
+    else:
+        data_source = "live tools (OWASP ZAP + Nmap)"
+
     meta.update(
         {
             "scan_id": state.get("scan_id"),
             "mock": state.get("mock"),
+            "data_source": data_source,
             "llm_backend": ctx.llm.backend,
             "model": ctx.llm.model,
         }
@@ -36,7 +49,13 @@ def report_agent(ctx: AgentContext, state: dict) -> dict:
 
     md_path.write_text(markdown, encoding="utf-8")
 
-    log = [f"[report] Markdown written to {md_path}"]
+    log: list[str] = []
+    if fell_back:
+        log.append(
+            "[WARN] live ZAP/Nmap were unreachable — results are from bundled "
+            "sample data, NOT a live scan of the target."
+        )
+    log.append(f"[report] Markdown written to {md_path}")
     pdf_written: str | None = None
     try:
         markdown_to_pdf(markdown, str(pdf_path))
