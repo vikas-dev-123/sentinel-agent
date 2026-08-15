@@ -14,6 +14,12 @@
 
 [**🚀 Live Demo**](https://sentinel-agent-43sv.onrender.com/) · [Quickstart](#-quickstart) · [How it works](#-how-it-works) · [Sample report](docs/sample-report.md)
 
+<br/>
+
+![SentinelAgent — findings dashboard](docs/demo-showcase.png)
+
+*Confirmed findings ranked by severity, filtered of false positives — [try the live app →](https://sentinel-agent-43sv.onrender.com/)*
+
 </div>
 
 ---
