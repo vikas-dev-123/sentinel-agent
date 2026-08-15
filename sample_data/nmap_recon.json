@@ -1,0 +1,41 @@
+[
+  {
+    "endpoint": "localhost:80",
+    "name": "Open port 80/tcp - http",
+    "param": "80/tcp",
+    "risk": "Informational",
+    "confidence": "High",
+    "evidence": "80/tcp open http Apache httpd 2.4.25 ((Debian))",
+    "description": "HTTP service running Apache 2.4.25 (Debian). Hosts the DVWA practice application.",
+    "solution": "Keep the web server patched; this is the primary attack surface.",
+    "service": "http",
+    "product": "Apache httpd",
+    "version": "2.4.25"
+  },
+  {
+    "endpoint": "localhost:3306",
+    "name": "Open port 3306/tcp - mysql",
+    "param": "3306/tcp",
+    "risk": "Medium",
+    "confidence": "High",
+    "evidence": "3306/tcp open mysql MySQL 5.7.33",
+    "description": "MySQL 5.7.33 is exposed. If reachable from untrusted networks this significantly widens the attack surface.",
+    "solution": "Bind MySQL to localhost only and firewall port 3306 from untrusted networks.",
+    "service": "mysql",
+    "product": "MySQL",
+    "version": "5.7.33"
+  },
+  {
+    "endpoint": "localhost:22",
+    "name": "Open port 22/tcp - ssh",
+    "param": "22/tcp",
+    "risk": "Low",
+    "confidence": "High",
+    "evidence": "22/tcp open ssh OpenSSH 7.4",
+    "description": "OpenSSH 7.4 is running. Older SSH versions may have known weaknesses.",
+    "solution": "Restrict SSH access, use key-based auth, and keep OpenSSH updated.",
+    "service": "ssh",
+    "product": "OpenSSH",
+    "version": "7.4"
+  }
+]

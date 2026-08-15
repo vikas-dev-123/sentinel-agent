@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+reports/
+.pytest_cache/
+.mypy_cache/
+*.pdf
+!sample_data/*

@@ -1,0 +1,34 @@
+# Local practice lab (spec Section 10). Everything stays on localhost — nothing
+# is exposed to the internet.
+#
+#   docker compose up -d
+#   # DVWA:       http://localhost:8081   (default creds admin / password; run setup)
+#   # Juice Shop: http://localhost:3000
+#   # ZAP API:    http://localhost:8080   (API key disabled for local dev)
+#
+# Then, from the host:
+#   python -m sentinel.cli scan http://localhost:8081
+
+services:
+  dvwa:
+    image: vulnerables/web-dvwa
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  juice-shop:
+    image: bkimminich/juice-shop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  zap:
+    image: zaproxy/zap-stable
+    command: >
+      zap.sh -daemon -host 0.0.0.0 -port 8080
+      -config api.disablekey=true
+      -config api.addrs.addr.name=.*
+      -config api.addrs.addr.regex=true
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

@@ -1,0 +1,25 @@
+# Core orchestration
+langgraph>=0.2
+langgraph-checkpoint>=1.0
+
+# LLM (reasoning / confirmation / report writing)
+anthropic>=0.40
+
+# Tools
+requests>=2.31        # OWASP ZAP REST API
+python-nmap>=0.7      # Nmap wrapper (also falls back to subprocess)
+
+# API layer
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# Reporting
+jinja2>=3.1
+reportlab>=4.0        # Markdown -> PDF
+
+# Web UI / deployment (Hugging Face Spaces)
+gradio>=4.44
+
+# Misc
+pydantic>=2.0
+python-dotenv>=1.0
