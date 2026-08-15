@@ -19,9 +19,13 @@ from sentinel.orchestrator import run_scan  # noqa: E402
 
 @pytest.fixture
 def mock_settings(tmp_path) -> Settings:
+    # Force the deterministic heuristic backend so tests never depend on a local
+    # .env (which may set SENTINEL_LLM_PROVIDER=hf and a token) or the network.
     s = Settings()
     s.mock = True
-    s.anthropic_api_key = None  # force heuristic backend for deterministic tests
+    s.llm_provider = "heuristic"
+    s.anthropic_api_key = None
+    s.hf_api_key = None
     s.reports_dir = str(tmp_path / "reports")
     return s
 
