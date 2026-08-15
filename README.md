@@ -1,19 +1,12 @@
----
-title: SentinelAgent
-emoji: 🛡️
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # SentinelAgent — AI Multi-Agent Penetration Testing Engine
 
 A multi-agent system (LangGraph) that automates web-app security testing. Specialized
-LLM agents drive real security tools (**OWASP ZAP**, **Nmap**), and Claude interprets,
-confirms, and explains the tool output — filtering false positives and producing a
-structured penetration-test report.
+LLM agents drive real security tools (**OWASP ZAP**, **Nmap**), and an LLM (Claude or a
+Hugging Face model) interprets, confirms, and explains the tool output — filtering false
+positives and producing a structured penetration-test report.
+
+**🔗 [Live demo](https://huggingface.co/spaces/vikas434433434/sentinel-agent)** (static
+showcase of real sample output) · run it live locally with the CLI/API below.
 
 > **Core principle:** agents never guess vulnerabilities from LLM knowledge. Every
 > finding originates from an actual tool scan. The LLM's job is to *interpret, confirm,
@@ -67,19 +60,24 @@ it a real scanner with no code changes.
 
 ### Choosing the reasoning backend
 
-Set `SENTINEL_LLM_PROVIDER` to `auto` (default) / `claude` / `hf` / `heuristic`.
+Set `SENTINEL_LLM_PROVIDER` to `auto` (default) / `claude` / `hf` / `ollama` / `heuristic`.
 
 ```bash
-# Use Hugging Face instead of Claude:
+# Hugging Face (hosted, OpenAI-compatible router):
 export SENTINEL_LLM_PROVIDER=hf
 export HF_API_KEY=hf_xxx
-export HF_MODEL=meta-llama/Llama-3.3-70B-Instruct   # any chat model your token can access
+export HF_MODEL=Qwen/Qwen2.5-7B-Instruct     # any chat model your token can access
+python -m sentinel.cli scan http://localhost/dvwa --mock
+
+# Ollama (local, free):
+export SENTINEL_LLM_PROVIDER=ollama
+export OLLAMA_MODEL=llama3.1:8b              # after: ollama pull llama3.1:8b
 python -m sentinel.cli scan http://localhost/dvwa --mock
 ```
 
-Hugging Face is called via its OpenAI-compatible router (`/v1/chat/completions`), so any
-instruct/chat model available to your token works — just change `HF_MODEL`. If a call fails
-or returns unparseable output, it falls back to the heuristic so a run never breaks.
+Hugging Face and Ollama are both called via the OpenAI-compatible `/v1/chat/completions`
+API, so any instruct/chat model works — just change the model name. If a call fails or
+returns unparseable output, it falls back to the heuristic so a run never breaks.
 
 ---
 
