@@ -122,8 +122,10 @@ class ZapClient:
         return params
 
     def _get(self, view: str, **kwargs) -> dict:
+        # ZAP actions like accessUrl fetch the target synchronously and can take
+        # much longer than a plain API read, so use a generous timeout.
         url = f"{self.base}/JSON/{view}/"
-        resp = requests.get(url, params=self._params(**kwargs), timeout=15)
+        resp = requests.get(url, params=self._params(**kwargs), timeout=90)
         resp.raise_for_status()
         return resp.json()
 
