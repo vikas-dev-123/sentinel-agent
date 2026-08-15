@@ -12,6 +12,8 @@ Deploy:        push to a Hugging Face Space (sdk: gradio). See DEPLOY.md.
 
 from __future__ import annotations
 
+import os
+
 import gradio as gr
 
 from sentinel.config import Settings
@@ -84,6 +86,7 @@ with gr.Blocks(title="SentinelAgent") as demo:
 
 
 if __name__ == "__main__":
-    # ssr_mode=False keeps everything in Python (no Node) so it runs in a plain
-    # Docker image. Blocks and serves on the HF-expected port 7860.
-    demo.launch(server_name="0.0.0.0", server_port=7860, ssr_mode=False)
+    # ssr_mode=False keeps everything in Python (no Node), so it runs on any plain
+    # Python host. Render/Heroku/etc. provide the port via $PORT; default 7860 locally.
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(server_name="0.0.0.0", server_port=port, ssr_mode=False)

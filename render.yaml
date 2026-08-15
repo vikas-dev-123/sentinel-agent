@@ -1,0 +1,28 @@
+# Render Blueprint — one-click deploy of the SentinelAgent Gradio demo.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Deploy: push this repo to GitHub, then on Render:
+#   New + -> Blueprint -> connect this repo. Render reads this file.
+#   After it deploys, set the HF_API_KEY secret in the service's Environment tab.
+
+services:
+  - type: web
+    name: sentinel-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
+      # Hosted demo runs on bundled sample data (no ZAP/Nmap on the host).
+      - key: SENTINEL_MOCK
+        value: "1"
+      # Reasoning backend. Use "hf" (set HF_API_KEY below) or "heuristic" (no key).
+      - key: SENTINEL_LLM_PROVIDER
+        value: hf
+      - key: HF_MODEL
+        value: Qwen/Qwen2.5-7B-Instruct
+      # Secret — set this in the Render dashboard (Environment tab), not in git.
+      - key: HF_API_KEY
+        sync: false
