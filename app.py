@@ -84,8 +84,5 @@ with gr.Blocks(title="SentinelAgent") as demo:
 
 
 if __name__ == "__main__":
-    # ssr_mode=False avoids the Gradio-5 Node/SSR proxy, which crashes on
-    # Hugging Face Spaces ("Stopping Node.js server..." -> RUNTIME_ERROR).
-    demo.queue().launch(
-        server_name="0.0.0.0", server_port=7860, ssr_mode=False
-    )
+    # Gradio 4.x on Spaces: no SSR/Node proxy. HF sets host/port via env.
+    demo.launch(server_name="0.0.0.0", server_port=7860)
