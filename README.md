@@ -1,153 +1,176 @@
-# SentinelAgent — AI Multi-Agent Penetration Testing Engine
+<div align="center">
 
-A multi-agent system (LangGraph) that automates web-app security testing. Specialized
-LLM agents drive real security tools (**OWASP ZAP**, **Nmap**), and an LLM (Claude or a
-Hugging Face model) interprets, confirms, and explains the tool output — filtering false
-positives and producing a structured penetration-test report.
+# 🛡️ SentinelAgent
 
-**🔗 [Live demo](https://huggingface.co/spaces/vikas434433434/sentinel-agent)** (static
-showcase of real sample output) · run it live locally with the CLI/API below.
+### AI Multi-Agent Penetration Testing Engine
 
-> **Core principle:** agents never guess vulnerabilities from LLM knowledge. Every
-> finding originates from an actual tool scan. The LLM's job is to *interpret, confirm,
-> and explain* — never to fabricate.
+**Specialized LangGraph agents drive real security tools (OWASP ZAP, Nmap); an LLM interprets, confirms, and explains every finding — it never fabricates.**
 
-Built from [`pentest-agent-CLAUDE.md`](pentest-agent-CLAUDE.md).
+[![tests](https://github.com/vikas-dev-123/sentinel-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/vikas-dev-123/sentinel-agent/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Built with](https://img.shields.io/badge/built%20with-LangGraph-orange)
+![LLM](https://img.shields.io/badge/LLM-Claude%20%7C%20HuggingFace%20%7C%20Ollama-8A2BE2)
 
----
+[**🚀 Live Demo**](https://sentinel-agent-43sv.onrender.com/) · [Quickstart](#-quickstart) · [How it works](#-how-it-works) · [Sample report](docs/sample-report.md)
 
-## Architecture
-
-```
-                    [ target URL ]
-                          │
-                   ┌──────▼───────┐
-                   │ Orchestrator │  (LangGraph root)
-                   └──────┬───────┘
-        ┌────────┬────────┼─────────┬───────────┐
-        ▼        ▼        ▼         ▼           ▼
-     Recon     SQLi      XSS       Auth     Misconfig      (fan-out, run in parallel)
-     (Nmap)    (ZAP)     (ZAP)     (ZAP)     (ZAP)
-        └────────┴────────┼─────────┴───────────┘
-                          ▼
-              ┌───────────────────────┐
-              │ Findings Confirmation │  (LLM: filter FPs, assign severity)
-              └───────────┬───────────┘
-                          ▼
-              ┌───────────────────────┐
-              │   Report Generator    │  (Markdown + PDF)
-              └───────────────────────┘
-```
-
-Each category agent follows one pattern: **call tool → get raw output → interpret with a
-narrow, category-specific LLM prompt → emit structured findings** into shared graph state.
+</div>
 
 ---
 
-## Runs anywhere — two modes
+## Overview
 
-The project is designed to run today and be "real" when the lab is up:
+**SentinelAgent** automates web-application security testing. A [LangGraph](https://langchain-ai.github.io/langgraph/) graph orchestrates specialized AI agents — each responsible for one vulnerability category. Every agent drives a **real security tool** (OWASP ZAP or Nmap), and an LLM (Claude / Hugging Face / Ollama) **interprets, confirms, and explains** the tool output, filtering false positives and producing a structured penetration-test report.
 
-| Dependency | If present | If absent |
-|---|---|---|
-| LLM key (Claude **or** Hugging Face) | that model does interpret / confirm / report | Deterministic **heuristic** analyzer does the same steps |
-| OWASP ZAP daemon | Live spider + active scan | Falls back to bundled sample alerts |
-| Nmap binary | Live service discovery | Falls back to bundled sample recon |
-| `--mock` flag | — | Forces sample data for everything |
+> **🔑 Core principle:** Agents never guess vulnerabilities from LLM knowledge. **Every finding originates from an actual tool scan.** The LLM's job is to *interpret, confirm, and explain* — never to fabricate.
 
-So `--mock` gives a complete, deterministic, offline demo; wiring up ZAP/Nmap/an LLM makes
-it a real scanner with no code changes.
+## ✨ Features
 
-### Choosing the reasoning backend
+- **🕸️ Multi-agent orchestration** — 6 specialized agents run in parallel via LangGraph with shared state
+- **🔧 Real tools, not guesses** — OWASP ZAP (active scan) + Nmap (service discovery) drive every finding
+- **🧠 Pluggable LLM reasoning** — Claude, Hugging Face, Ollama, or an offline heuristic (auto-fallback)
+- **🎯 False-positive filtering** — a dedicated confirmation agent filters scanner noise and assigns severity
+- **📄 Structured reports** — professional Markdown + PDF output with evidence and remediation
+- **🔌 CLI, REST API, and Web UI** — three ways to run it
+- **⚖️ Built-in scope guard** — refuses to scan anything but approved practice targets or hosts you own
+- **♻️ Runs anywhere** — full offline demo with bundled sample data, or live with real tools
 
-Set `SENTINEL_LLM_PROVIDER` to `auto` (default) / `claude` / `hf` / `ollama` / `heuristic`.
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    U([Target URL]) --> O[Orchestrator<br/>LangGraph root]
+    O --> R[Recon Agent<br/>Nmap]
+    O --> S[SQLi Agent<br/>ZAP]
+    O --> X[XSS Agent<br/>ZAP]
+    O --> A[Auth Agent<br/>ZAP]
+    O --> M[Misconfig Agent<br/>ZAP]
+    R --> C[Findings Confirmation<br/>LLM: filter FPs + severity]
+    S --> C
+    X --> C
+    A --> C
+    M --> C
+    C --> P[Report Generator<br/>Markdown + PDF]
+    P --> OUT([Final Report])
+```
+
+Each category agent follows one pattern:
+
+> **call tool → get raw output → interpret with a narrow, category-specific LLM prompt → emit structured findings** into shared graph state.
+
+## 🚀 Quickstart
+
+No ZAP, no Nmap, no API key needed — the offline demo runs on bundled sample data:
 
 ```bash
-# Hugging Face (hosted, OpenAI-compatible router):
-export SENTINEL_LLM_PROVIDER=hf
-export HF_API_KEY=hf_xxx
-export HF_MODEL=Qwen/Qwen2.5-7B-Instruct     # any chat model your token can access
-python -m sentinel.cli scan http://localhost/dvwa --mock
-
-# Ollama (local, free):
-export SENTINEL_LLM_PROVIDER=ollama
-export OLLAMA_MODEL=llama3.1:8b              # after: ollama pull llama3.1:8b
-python -m sentinel.cli scan http://localhost/dvwa --mock
-```
-
-Hugging Face and Ollama are both called via the OpenAI-compatible `/v1/chat/completions`
-API, so any instruct/chat model works — just change the model name. If a call fails or
-returns unparseable output, it falls back to the heuristic so a run never breaks.
-
----
-
-## Quick start
-
-```bash
+git clone https://github.com/vikas-dev-123/sentinel-agent.git
+cd sentinel-agent
 pip install -r requirements.txt
 
-# Offline demo (no ZAP, no Nmap, no API key needed):
+# Full pipeline (offline):
 python -m sentinel.cli scan http://localhost/dvwa --mock
 
-# Phase-1 loop only (single tool -> single LLM interpretation):
-python scripts/phase1_demo.py --mock --category sqli
+# Web UI:
+python app.py                       # -> http://localhost:7860
 
-# API server:
-uvicorn sentinel.api:app --reload
-curl -X POST localhost:8000/scan \
-  -H 'content-type: application/json' \
-  -d '{"target":"http://localhost/dvwa","mock":true}'
+# REST API:
+uvicorn sentinel.api:app --reload   # -> POST /scan, GET /health
 ```
 
-Reports (Markdown + PDF) are written to `reports/`.
+Reports (Markdown + PDF) land in `reports/`. See a [**sample report**](docs/sample-report.md).
 
-### With the real lab
+## ⚙️ How it works
 
-```bash
-docker compose up -d          # DVWA (:8081), Juice Shop (:3000), ZAP (:8080)
-export ANTHROPIC_API_KEY=...   # optional, enables Claude reasoning
-python -m sentinel.cli scan http://localhost:8081
-```
+| Stage | Agent(s) | Tool | What happens |
+|---|---|---|---|
+| Recon | Recon | Nmap | Discover open ports / services |
+| Scan | SQLi · XSS · Auth · Misconfig | OWASP ZAP | Active scan for each vulnerability class (parallel) |
+| Confirm | Findings Confirmation | LLM | Filter false positives, deduplicate, assign severity |
+| Report | Report Generator | — | Executive summary → findings table → detailed write-ups → PDF |
 
----
+### Pluggable reasoning backends
 
-## Configuration
+Set `SENTINEL_LLM_PROVIDER` = `auto` (default) · `claude` · `hf` · `ollama` · `heuristic`.
 
-Copy `.env.example` to `.env`. Key variables: `ANTHROPIC_API_KEY`, `SENTINEL_CLAUDE_MODEL`
-(default `claude-opus-5`), `ZAP_API_URL`, `ZAP_API_KEY`, `NMAP_BINARY`, `SENTINEL_MOCK`,
-`SENTINEL_ALLOW_ANY`, `SENTINEL_APPROVED_HOSTS`, `SENTINEL_REPORTS_DIR`.
+| Backend | Cost | Notes |
+|---|---|---|
+| **Claude** (`claude-opus-5`) | paid | best reasoning / report prose |
+| **Hugging Face** | free tier | any chat model via the OpenAI-compatible router |
+| **Ollama** | free / local | run models on your own machine |
+| **heuristic** | free | deterministic, no LLM — always works offline |
 
- ---
+If an LLM call fails, it falls back to the heuristic so a run never breaks.
 
-## Project layout
+## 🧪 Real-world example: catching false positives
+
+Pointed at a real Next.js/Vercel site, a naïve scanner flagged `/.env` and `/.git/config` as **HIGH — exposed**. SentinelAgent's verification caught that these returned the app's HTML (SPA catch-all routing), **discarded both as false positives**, and reported only the genuine issues — missing `Content-Security-Policy`, `X-Frame-Options`, and tech-stack disclosure. *This is exactly what the confirmation agent is for.*
+
+## 🛠️ Tech stack
+
+| Layer | Choice |
+|---|---|
+| Orchestration | LangGraph |
+| LLM | Claude · Hugging Face · Ollama (+ heuristic fallback) |
+| Scanning | OWASP ZAP (REST API) · Nmap |
+| API | FastAPI |
+| UI | Gradio |
+| Reporting | Jinja2 · ReportLab (PDF) |
+
+## 📁 Project structure
 
 ```
 sentinel/
   config.py          # settings + scope/authorization enforcement
   state.py           # shared LangGraph state (TypedDict + reducers)
-  llm/               # Claude client + heuristic fallback + prompts
+  llm/               # LLM client (Claude/HF/Ollama) + heuristic + prompts
   tools/             # ZAP and Nmap wrappers (live + sample fallback)
-  agents/            # recon, scanners (sqli/xss/auth/misconfig), confirmation, report
+  agents/            # recon, scanners, confirmation, report
   reporting/         # Markdown template + Markdown->PDF
   orchestrator.py    # LangGraph graph wiring
   cli.py             # command-line entrypoint
   api.py             # FastAPI layer
-scripts/phase1_demo.py
-sample_data/         # realistic ZAP alerts + Nmap output for offline runs
-tests/               # end-to-end pipeline tests (offline)
+app.py               # Gradio web UI
+scripts/             # phase-1 demo + static-site builder
+sample_data/         # realistic ZAP/Nmap output for offline runs
+tests/               # end-to-end pipeline tests
 ```
 
-## Build phases (from the spec)
-
-1. Single tool → LLM loop — `scripts/phase1_demo.py`
-2. LangGraph, 2 agents — subset of `orchestrator.py`
-3. All 5 category agents — `agents/recon.py`, `agents/scanners.py`
-4. Findings Confirmation — `agents/confirmation.py`
-5. Report Generator (Markdown → PDF) — `agents/report.py`, `reporting/`
-6. FastAPI layer — `api.py`
-
-## Tests
+## 🔬 Running against real targets
 
 ```bash
-python -m pytest tests/ -q
+docker compose up -d          # DVWA (:8081), Juice Shop (:3000), ZAP (:8080)
+
+# Real ZAP scan of a local practice app:
+SENTINEL_MOCK=0 python -m sentinel.cli scan http://localhost:8081
+
+# A site you OWN (with authorization):
+SENTINEL_ALLOW_ANY=1 SENTINEL_MOCK=0 ZAP_API_URL=http://localhost:8080 \
+  python -m sentinel.cli scan https://your-own-site.com
 ```
+
+## ✅ Tests
+
+```bash
+python -m pytest tests/ -q      # 5 passed
+```
+
+## 🗺️ Roadmap
+
+- [ ] Authenticated scanning (session/cookie injection for logged-in areas)
+- [ ] More OWASP WSTG categories (CSRF, SSRF, access control)
+- [ ] Cost-routed multi-model pipeline (cheap parse + strong reasoning)
+- [ ] Surface live-vs-fallback status explicitly in output
+
+## ⚖️ Legal & Ethics
+
+**Only scan systems you own or have explicit written authorization to test.** SentinelAgent enforces this by default — it refuses any target that isn't localhost/private or an explicitly approved host. Approved practice targets are **DVWA** and **OWASP Juice Shop**, run locally. Scanning third-party systems without permission is illegal.
+
+## 📜 License
+
+[MIT](LICENSE) © 2026 Vikas Pandey
+
+<div align="center">
+
+Built with **LangGraph** + **Claude / Hugging Face**. From the design spec in [`pentest-agent-CLAUDE.md`](pentest-agent-CLAUDE.md).
+
+</div>
