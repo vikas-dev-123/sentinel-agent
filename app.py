@@ -84,5 +84,6 @@ with gr.Blocks(title="SentinelAgent") as demo:
 
 
 if __name__ == "__main__":
-    # Gradio 4.x on Spaces: no SSR/Node proxy. HF sets host/port via env.
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    # ssr_mode=False keeps everything in Python (no Node) so it runs in a plain
+    # Docker image. Blocks and serves on the HF-expected port 7860.
+    demo.launch(server_name="0.0.0.0", server_port=7860, ssr_mode=False)
