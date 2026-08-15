@@ -202,12 +202,24 @@ render();
 """
 
 
+def _safe_json(obj) -> str:
+    """JSON safe to embed inside a <script> tag.
+
+    Evidence/payloads can contain literal `</script>` (e.g. an XSS payload),
+    which would close the script tag early. Unicode-escape the HTML-significant
+    characters; they decode back to the same values in the JS string literal.
+    """
+    return (
+        json.dumps(obj)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+
+
 def main() -> int:
     data = gather()
-    out = (
-        PAGE.replace("__DATA__", json.dumps(data))
-        .replace("__GH__", GITHUB_URL)
-    )
+    out = PAGE.replace("__DATA__", _safe_json(data)).replace("__GH__", GITHUB_URL)
     Path("index.html").write_text(out, encoding="utf-8")
     print(f"index.html written ({len(data['findings'])} findings baked in)")
     return 0
